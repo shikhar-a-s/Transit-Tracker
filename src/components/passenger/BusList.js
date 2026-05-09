@@ -642,14 +642,6 @@ const BusList = () => {
             </>
           )}
           
-          {/* Route path between bus and passenger */}
-          {routePath.length === 2 && (
-            <Polyline 
-              positions={routePath}
-              pathOptions={{ color: 'blue', dashArray: '10, 10' }}
-            />
-          )}
-          
           {/* Intermediate stops markers */}
           {routeStops.length > 0 && (
             <>
