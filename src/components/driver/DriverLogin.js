@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { cityStops, getRoutesByCity } from '../../data/cityStops';
 import { useNavigate } from 'react-router-dom';
-import { initializeSampleDrivers, authenticateDriver } from '../../services/DriverService';
-import { db } from '../../firebase';
-import { ref, onValue } from 'firebase/database';
+import { auth, db } from "../../firebase";
+import { ref, onValue, get } from "firebase/database";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import './DriverLogin.css';
 
 const DriverLogin = () => {
   const navigate = useNavigate();
-  const [credentials, setCredentials] = useState({
-    username: '',
-    password: ''
-  });
+ const [credentials, setCredentials] = useState({
+  email: '',
+  password: ''
+});
   const [routeData, setRouteData] = useState({
     city: '',
     routeId: ''
@@ -84,27 +84,72 @@ const DriverLogin = () => {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  e.preventDefault();
+  setLoading(true);
+  setError("");
 
-    try {
-      // Initialize sample drivers if they don't exist (for demo purposes)
-      await initializeSampleDrivers();
-      
-      // Authenticate driver using the service
-      const driverData = await authenticateDriver(credentials.username, credentials.password);
-      
-      // Authentication successful
-      setDriverInfo(driverData);
-      setIsAuthenticated(true);
-      setError('');
-    } catch (error) {
-      setError(error.message || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
+  try {
+    // Firebase Authentication
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      credentials.email,
+      credentials.password
+    );
+
+    const user = userCredential.user;
+
+    // Verify driver exists
+    const driverRef = ref(db, `driverCredentials/${user.uid}`);
+    const snapshot = await get(driverRef);
+
+    if (!snapshot.exists()) {
+      await signOut(auth);
+      setError("You are not an authorized driver.");
+      return;
     }
-  };
+
+    const driverData = snapshot.val();
+
+    // Check active status
+    if (!driverData.isActive) {
+      await signOut(auth);
+      setError("Driver account is inactive.");
+      return;
+    }
+
+    setDriverInfo({
+      uid: user.uid,
+      email: user.email,
+      ...driverData,
+    });
+
+    setIsAuthenticated(true);
+
+  } catch (error) {
+  switch (error.code) {
+    case "auth/invalid-credential":
+      setError("Invalid email or password.");
+      break;
+
+    case "auth/user-not-found":
+      setError("Driver account not found.");
+      break;
+
+    case "auth/wrong-password":
+      setError("Incorrect password.");
+      break;
+
+    case "auth/too-many-requests":
+      setError("Too many failed attempts. Please try again later.");
+      break;
+
+    default:
+      setError(error.message || "Login failed.");
+  }
+} finally {
+  setLoading(false);
+}
+};
 
   const handleRouteSubmit = (e) => {
     e.preventDefault();
@@ -148,15 +193,15 @@ const DriverLogin = () => {
             {error && <div className="error-message">{error}</div>}
             
             <div className="form-group">
-              <label htmlFor="username">Username:</label>
+              <label htmlFor="email">Email:</label>
               <input
-                type="text"
-                id="username"
-                name="username"
-                value={credentials.username}
+                type="email"
+                id="email"
+                name="email"
+                value={credentials.email}
                 onChange={handleCredentialChange}
                 required
-                placeholder="Enter your username"
+                placeholder="Enter your email"
               />
             </div>
             
@@ -178,11 +223,27 @@ const DriverLogin = () => {
             </button>
           </form>
           
-          <div className="demo-credentials">
-            <h3>Demo Credentials:</h3>
-            <p><strong>Username:</strong> driver001 | <strong>Password:</strong> password123</p>
-            <p><strong>Username:</strong> driver002 | <strong>Password:</strong> secure456</p>
-          </div>
+         <div className="demo-credentials">
+  <h3>Demo Credentials:</h3>
+
+  <p>
+    <strong>Email:</strong> driver001@transittracker.com
+    <br />
+    <strong>Password:</strong> driver001
+  </p>
+
+  <p>
+    <strong>Email:</strong> driver002@transittracker.com
+    <br />
+    <strong>Password:</strong> driver002
+  </p>
+
+  <p>
+    <strong>Email:</strong> driver003@transittracker.com
+    <br />
+    <strong>Password:</strong> driver003(Inactive)
+  </p>
+</div>
         </div>
       ) : (
         <div className="driver-form-container">

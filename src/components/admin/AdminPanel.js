@@ -5,6 +5,7 @@ import { geocodeAddress } from '../../services/GeocodeService';
 import { db } from '../../firebase';
 import { ref, set, remove, onValue } from 'firebase/database';
 import './AdminPanel.css';
+const NOMINATIM_BASE_URL = process.env.REACT_APP_NOMINATIM_BASE_URL;
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -336,9 +337,13 @@ const AdminPanel = () => {
         // Try search with city first (for specific results)
         try {
           const response1 = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}, ${selectedCity}&format=json&limit=10&addressdetails=1`,
-            { headers: { 'User-Agent': 'TransitTracker' } }
-          );
+  `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(value)},${encodeURIComponent(selectedCity)}&format=json&limit=10&addressdetails=1`,
+  {
+    headers: {
+      "User-Agent": "TransitTracker"
+    }
+  }
+);
           const data1 = await response1.json();
           suggestions = data1.slice(0, 5);
         } catch (error) {
@@ -348,10 +353,14 @@ const AdminPanel = () => {
         // If no results with city, try broader search
         if (suggestions.length === 0) {
           try {
-            const response2 = await fetch(
-              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&limit=10&addressdetails=1`,
-              { headers: { 'User-Agent': 'TransitTracker' } }
-            );
+  const response2 = await fetch(
+    `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(value)}&format=json&limit=10&addressdetails=1`,
+    {
+      headers: {
+        "User-Agent": "TransitTracker"
+      }
+    }
+  );
             const data2 = await response2.json();
             suggestions = data2.slice(0, 5);
           } catch (error) {

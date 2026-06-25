@@ -5,7 +5,7 @@
  */
 
 // OSRM public server (or use your own self-hosted instance)
-const OSRM_SERVER = 'https://router.project-osrm.org';
+const OSRM_SERVER = process.env.REACT_APP_OSRM_BASE_URL;
 
 /**
  * Fetch route directions from OSRM (Open Source Routing Machine)

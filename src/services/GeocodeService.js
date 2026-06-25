@@ -1,12 +1,16 @@
 // Geocoding service using Nominatim (OpenStreetMap) - Free and no API key required
+
+const NOMINATIM_BASE_URL = process.env.REACT_APP_NOMINATIM_BASE_URL;
+
+// Geocode an address
 export const geocodeAddress = async (address, city = '') => {
   try {
     // Try with city first
     let response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}, ${city}&limit=5`,
+      `${NOMINATIM_BASE_URL}/search?format=json&q=${encodeURIComponent(address)}, ${encodeURIComponent(city)}&limit=5`,
       {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'User-Agent': 'TransitTracker'
         }
       }
@@ -17,14 +21,15 @@ export const geocodeAddress = async (address, city = '') => {
     // If no results with city, try without city
     if (data.length === 0 && city) {
       response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5`,
+        `${NOMINATIM_BASE_URL}/search?format=json&q=${encodeURIComponent(address)}&limit=5`,
         {
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'User-Agent': 'TransitTracker'
           }
         }
       );
+
       data = await response.json();
     }
 
@@ -33,7 +38,7 @@ export const geocodeAddress = async (address, city = '') => {
     }
 
     const result = data[0];
-    
+
     return {
       name: result.name || address,
       latitude: parseFloat(result.lat),
@@ -46,14 +51,14 @@ export const geocodeAddress = async (address, city = '') => {
   }
 };
 
-// Reverse geocoding - get address from coordinates
+// Reverse geocoding
 export const reverseGeocode = async (latitude, longitude) => {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+      `${NOMINATIM_BASE_URL}/reverse?format=json&lat=${latitude}&lon=${longitude}`,
       {
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json'
         }
       }
     );
@@ -63,7 +68,13 @@ export const reverseGeocode = async (latitude, longitude) => {
     }
 
     const data = await response.json();
-    return data.address?.road || data.address?.village || data.display_name || 'Unknown Location';
+
+    return (
+      data.address?.road ||
+      data.address?.village ||
+      data.display_name ||
+      'Unknown Location'
+    );
   } catch (error) {
     console.error('Reverse geocoding error:', error);
     return 'Unknown Location';

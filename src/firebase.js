@@ -1,19 +1,18 @@
-// firebase.js
-// Firebase configuration and initialization
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDT17vf6MwoD1aYZcWa_Gik79WEOQUBKKg",
-  authDomain: "bus-tracking-cc4f0.firebaseapp.com",
-  databaseURL: "https://bus-tracking-cc4f0-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "bus-tracking-cc4f0",
-  storageBucket: "bus-tracking-cc4f0.appspot.com",
-  messagingSenderId: "65366392910",
-  appId: "1:65366392910:web:70be98c511c2a536aa431f"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  databaseURL: process.env.REACT_APP_FIREBASE_DATABASE_URL,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
 
-export { db };
+export const db = getDatabase(app);
+export const auth = getAuth(app);

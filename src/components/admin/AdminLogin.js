@@ -1,88 +1,147 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { initializeSampleAdmins, authenticateAdmin } from '../../services/AdminService';
 import './AdminLogin.css';
+
+import {
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+
+import {
+  ref,
+  get,
+} from "firebase/database";
+
+import { auth, db } from "../../firebase";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+
   const [credentials, setCredentials] = useState({
-    username: '',
-    password: ''
+    username: "",
+    password: "",
   });
-  const [error, setError] = useState('');
+
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleCredentialChange = (e) => {
     const { name, value } = e.target;
+
     setCredentials({
       ...credentials,
-      [name]: value
+      [name]: value,
     });
-    setError(''); // Clear error when user types
+
+    setError("");
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      // Initialize sample admins if they don't exist (for demo purposes)
-      await initializeSampleAdmins();
-      
-      // Authenticate admin using the service
-      const adminData = await authenticateAdmin(credentials.username, credentials.password);
-      
-      // Authentication successful
-      // Store admin info in localStorage
-      localStorage.setItem('adminInfo', JSON.stringify(adminData));
-      
-      // Navigate to admin panel
-      navigate('/admin/panel');
+      // Firebase Authentication
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        credentials.username,
+        credentials.password
+      );
+
+      const user = userCredential.user;
+
+      // Check if the authenticated user is an admin
+      const adminRef = ref(db, `adminCredentials/${user.uid}`);
+      const snapshot = await get(adminRef);
+
+      if (!snapshot.exists()) {
+        await signOut(auth);
+        setError("You are not authorized as an admin.");
+        return;
+      }
+
+      const adminData = snapshot.val();
+
+      // Store admin information
+      localStorage.setItem(
+        "adminInfo",
+        JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          role: adminData.role,
+          city: adminData.city,
+          company: adminData.company,
+        })
+      );
+
+      navigate("/admin/panel");
+
     } catch (error) {
-      setError(error.message || 'Login failed. Please try again.');
+      setError(error.message || "Login failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminInfo');
-    navigate('/');
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem("adminInfo");
+    navigate("/");
   };
 
   return (
     <div className="admin-login-container">
-      <div style={{ position: 'absolute', top: 20, left: 30, fontWeight: 'bold', fontSize: '2rem', color: '#fff', letterSpacing: '2px', zIndex: 100 }}>
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          left: 30,
+          fontWeight: "bold",
+          fontSize: "2rem",
+          color: "#fff",
+          letterSpacing: "2px",
+          zIndex: 100,
+        }}
+      >
         Transit Tracker
       </div>
-      <button 
-        onClick={() => navigate('/')}
+
+      <button
+        onClick={() => navigate("/")}
         className="home-button"
       >
         Home
       </button>
+
       <h1 style={{ marginTop: 80 }}>Admin Login</h1>
-      
+
       <div className="admin-form-container">
         <form onSubmit={handleLogin}>
-          {error && <div className="error-message">{error}</div>}
-          
+
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
           <div className="form-group">
-            <label htmlFor="username">Username:</label>
+            <label htmlFor="username">Email:</label>
+
             <input
-              type="text"
+              type="email"
               id="username"
               name="username"
               value={credentials.username}
               onChange={handleCredentialChange}
               required
-              placeholder="Enter your admin username"
+              placeholder="Enter your admin email"
             />
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="password">Password:</label>
+
             <input
               type="password"
               id="password"
@@ -93,23 +152,40 @@ const AdminLogin = () => {
               placeholder="Enter your password"
             />
           </div>
-          
-          <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loading}
+          >
+            {loading ? "Logging in..." : "Login"}
           </button>
+
         </form>
-        
+
         <div className="demo-credentials">
-          <h3>Demo Admin Credentials:</h3>
-          <p><strong>Username:</strong> admin001 | <strong>Password:</strong> admin@123</p>
-          <p><strong>Company:</strong> City Transportation Ltd (Bangalore routes)</p>
+          <h3>Admin Accounts</h3>
+
+          <p>
+            <strong>Bangalore:</strong><br />
+            bangalore.admin@transittracker.com
+          </p>
+
           <hr />
-          <p><strong>Username:</strong> admin002 | <strong>Password:</strong> admin@456</p>
-          <p><strong>Company:</strong> Coastal Bus Services (Mangalore routes)</p>
+
+          <p>
+            <strong>Mangalore:</strong><br />
+            mangalore.admin@transittracker.com
+          </p>
+
           <hr />
-          <p><strong>Username:</strong> admin003 | <strong>Password:</strong> admin@789</p>
-          <p><strong>Company:</strong> National Transit Corp (All cities)</p>
+
+          <p>
+            <strong>Super Admin:</strong><br />
+            superadmin@transittracker.com
+          </p>
         </div>
+
       </div>
     </div>
   );
